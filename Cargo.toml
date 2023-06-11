@@ -1,0 +1,14 @@
+[package]
+name    = "coolfindpattern"
+version = "0.1.0"
+authors = ["unknowntrojan"]
+edition = "2021"
+
+[[bench]]
+name = "find_pattern"
+path = "benches/pattern.rs"
+
+[dev-dependencies]
+rand = "*"
+
+[dependencies]
