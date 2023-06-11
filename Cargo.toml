@@ -8,6 +8,12 @@ edition = "2021"
 name = "find_pattern"
 path = "benches/pattern.rs"
 
+[profile.bench]
+debug           = true
+opt-level       = 3
+overflow-checks = false
+lto             = "fat"
+
 [dev-dependencies]
 rand = "*"
 
