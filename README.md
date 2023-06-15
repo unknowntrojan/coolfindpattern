@@ -1,5 +1,7 @@
 # coolfindpattern
 
+![crates.io](https://img.shields.io/crates/v/coolfindpattern.svg)
+
 an updated version of my [findpattern](https://github.com/unknowntrojan/findpattern) crate, this time using modern SIMD.
 
 You have to enable SIMD instruction sets in your .cargo/config.toml. See [config.toml](.cargo/config.toml)
