@@ -17,6 +17,6 @@ overflow-checks = false
 lto             = "fat"
 
 [dev-dependencies]
-rand = "*"
+rand = "0.8.5"
 
 [dependencies]
