@@ -1,8 +1,10 @@
 [package]
-name    = "coolfindpattern"
-version = "0.1.0"
-authors = ["unknowntrojan"]
-edition = "2021"
+name         = "coolfindpattern"
+description  = "SIMD-accelerated pattern scanning library"
+authors      = ["unknowntrojan"]
+version      = "0.1.0"
+license-file = "LICENSE"
+edition      = "2021"
 
 [[bench]]
 name = "find_pattern"
