@@ -4,6 +4,7 @@ description  = "SIMD-accelerated pattern scanning library"
 authors      = ["unknowntrojan"]
 version      = "0.1.1"
 license-file = "LICENSE"
+repository   = "https://github.com/unknowntrojan/coolfindpattern"
 edition      = "2021"
 
 [[bench]]
