@@ -1,6 +1,6 @@
 # coolfindpattern
 
-![crates.io](https://img.shields.io/crates/v/coolfindpattern.svg)
+<a href="https://crates.io/crates/coolfindpattern"><img src="https://img.shields.io/crates/v/coolfindpattern.svg"></img></a>
 
 an updated version of my [findpattern](https://github.com/unknowntrojan/findpattern) crate, this time using modern SIMD.
 
