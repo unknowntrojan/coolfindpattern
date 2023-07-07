@@ -5,14 +5,28 @@ use std::{
     simd::{Mask, Simd, SimdPartialEq, ToBitMask},
 };
 
-#[cfg(all(not(target_feature = "avx2"), not(target_feature = "sse2")))]
-const BYTES: usize = 8;
+// we attempt to detect which instruction set rustc will make use of,
+// as *for some reason* rust does not allow us to have the width
+// automatically inferred. but it is what it is ¯\_(ツ)_/¯
+#[cfg(all(
+    not(target_feature = "sse2"),
+    not(target_feature = "avx2"),
+    not(target_feature = "avx512f")
+))]
+compile_error!("you have not selected a proper SIMD instruction set (SSE2/AVX2/AVX512)");
 
-#[cfg(all(target_feature = "sse2", not(target_feature = "avx2")))]
+#[cfg(all(
+    target_feature = "sse2",
+    not(target_feature = "avx2"),
+    not(target_feature = "avx512f")
+))]
 const BYTES: usize = 16;
 
-#[cfg(target_feature = "avx2")]
+#[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
 const BYTES: usize = 32;
+
+#[cfg(target_feature = "avx512f")]
+const BYTES: usize = 64;
 
 #[macro_export]
 macro_rules! pattern {
@@ -41,10 +55,27 @@ pub struct PreparedPattern {
     pub orig_pat: OwnedPattern,
     pub size: usize,
     pub padded_size: usize,
+    pub start_offset: usize,
 }
 
 impl<'a> From<Pattern<'a>> for PreparedPattern {
     fn from(pat: Pattern) -> Self {
+        // remove trailing wildcard bytes
+        let pat = &pat[0..=pat
+            .iter()
+            .rposition(|chr| matches!(chr, Some(_)))
+            .expect("pattern should not be a wildcard!")];
+
+        // don't include the first n wildcard bytes in the actual search pattern, saving valuable space
+        // doing this naively would cause an unexpected shift in the returned matches, therefore
+        // we simply re-apply the offset when returning pattern matches to the user.
+        let start_offset = pat
+            .iter()
+            .position(|byte| byte.is_some())
+            .expect("pattern should not be a wildcard!");
+
+        let pat = &pat[start_offset..pat.len()];
+
         // get size extended to next chunk
         let size = if pat.len() % BYTES == 0 {
             pat.len()
@@ -53,17 +84,14 @@ impl<'a> From<Pattern<'a>> for PreparedPattern {
         };
 
         let bytes: Vec<u8> = pat
-            .into_iter()
+            .iter()
             .map(|x| match x {
                 Some(x) => *x,
                 None => 0u8,
             })
             .collect();
 
-        // TODO: remove wildcards from start and end of pattern
-        // TODO: handle wildcard prefixes
-
-        let mask: Vec<bool> = pat.into_iter().map(|x| x.is_some()).collect();
+        let mask: Vec<bool> = pat.iter().map(|x| x.is_some()).collect();
 
         let mut bytes_extended = vec![0u8; size];
 
@@ -88,12 +116,13 @@ impl<'a> From<Pattern<'a>> for PreparedPattern {
             orig_pat: pat.to_owned(),
             size: pat.len(),
             padded_size: size,
+            start_offset,
         }
     }
 }
 
 // precompute data for pattern in SIMD chunks.
-// SIMD search binary, data[0] is matched, match data[1..n]
+// SIMD search binary
 
 pub struct PatternSearcher<'data> {
     data: &'data [u8],
@@ -123,6 +152,9 @@ impl<'data> Iterator for PatternSearcher<'data> {
 
             if self.remaining_data.len() < self.pattern.padded_size {
                 // pattern is no longer SIMD-findable. manually find.
+
+                // this is a very cold path.
+                #[cold]
                 fn find_pattern(region: &[u8], pattern: Pattern) -> Option<usize> {
                     region.windows(pattern.len()).position(|wnd| {
                         wnd.iter().zip(pattern).all(|(v, p)| match p {
@@ -136,7 +168,8 @@ impl<'data> Iterator for PatternSearcher<'data> {
 
                 break match result {
                     Some(offset) => {
-                        let result = offset + self.data.len() - self.remaining_data.len();
+                        let result = offset - self.pattern.start_offset + self.data.len()
+                            - self.remaining_data.len();
                         self.remaining_data = &self.remaining_data[offset + 1..];
 
                         Some(result)
@@ -198,14 +231,14 @@ impl<'data> Iterator for PatternSearcher<'data> {
                     continue 'main;
                 }
 
-                // we matched. go on to next chunk. if all chunks do not restart the pattern scan, we will return a match
+                // we matched. go on to next chunk. if the remaining chunks also match, we gracefully leave the loop and return a match.
 
                 first_chunk = false;
                 current_search = &current_search[BYTES..];
                 current_offset += BYTES;
             }
 
-            let result = self.data.len() - self.remaining_data.len();
+            let result = self.data.len() - self.remaining_data.len() - self.pattern.start_offset;
 
             self.remaining_data = &self.remaining_data[1..];
 
@@ -230,6 +263,21 @@ fn test_scan_simple() {
 }
 
 #[test]
+fn test_scan_offset() {
+    let mut buf = vec![0u8; 500];
+
+    buf[6] = 0xDE;
+    buf[7] = 0xAD;
+    buf[8] = 0xBE;
+    buf[9] = 0xEF;
+
+    let pattern = pattern!(_, 0xDE, 0xAD, 0xBE, 0xEF);
+    let mut scanner = PatternSearcher::new(&buf, pattern);
+
+    assert_eq!(scanner.next(), Some(5))
+}
+
+#[test]
 fn test_scan_simd_fallback() {
     let mut buf = vec![0u8; 500];
 
@@ -242,6 +290,21 @@ fn test_scan_simd_fallback() {
     let mut scanner = PatternSearcher::new(&buf, pattern);
 
     assert_eq!(scanner.next(), Some(496))
+}
+
+#[test]
+fn test_scan_simd_fallback_offset() {
+    let mut buf = vec![0u8; 500];
+
+    buf[496] = 0xDE;
+    buf[497] = 0xAD;
+    buf[498] = 0xBE;
+    buf[499] = 0xEF;
+
+    let pattern = pattern!(_, 0xDE, 0xAD, 0xBE, 0xEF);
+    let mut scanner = PatternSearcher::new(&buf, pattern);
+
+    assert_eq!(scanner.next(), Some(495))
 }
 
 #[test]

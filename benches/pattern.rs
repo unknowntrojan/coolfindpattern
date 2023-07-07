@@ -10,11 +10,9 @@ use test::Bencher;
 fn bench_pattern_1gig(b: &mut Bencher) {
     let mut rng = rand::thread_rng();
 
-    // let size: usize = 1024 * 1024 * 1024;
-    let size: usize = 268435456;
+    let size: usize = 1024 * 1024 * 1024;
     let mut test_pattern: Vec<u8> = (0..size).map(|_| rng.gen_range(0..=255)).collect();
 
-    // let pattern = size / 2;
     let pattern = size - 15;
 
     test_pattern[pattern] = 0xDE;

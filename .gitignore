@@ -1,3 +1,5 @@
 /target
 /Cargo.lock
 /.vscode
+dhat-heap.json
+flamegraph.svg
