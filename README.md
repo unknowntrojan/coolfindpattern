@@ -9,10 +9,10 @@ You have to enable SIMD instruction sets in your [.cargo/config.toml](./.cargo/c
 Benchmarks were performed on the following machine:
 
 - AMD Ryzen 7 5800X3D boosting to ~4.3GHz
-- 4*16 GB DDR4-3200 Dual-Channel CL16
+- 4*16 GB DDR4-3200 Dual-Channel CL16 (51.2GiB/s theoretical maximum)
 - (Other specs don't matter)
 
-**! The old measurements were incorrect/misleading! I forgot to change back the memory size back to 1GiB from 250MiB. !**
+Measurements run on a single core only.
 
 ## Average Time taken (needle=10byte, haystack=1GiB)
 
