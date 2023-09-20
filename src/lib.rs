@@ -11,12 +11,13 @@ use std::{
 #[cfg(all(
     not(target_feature = "sse2"),
     not(target_feature = "avx2"),
-    not(target_feature = "avx512f")
+    not(target_feature = "avx512f"),
+    not(target_feature = "neon")
 ))]
-compile_error!("you have not selected a proper SIMD instruction set (SSE2/AVX2/AVX512)");
+compile_error!("you have not selected a proper SIMD instruction set (SSE2/AVX2/AVX512/NEON)");
 
 #[cfg(all(
-    target_feature = "sse2",
+    any(target_feature = "sse2", target_feature = "neon"),
     not(target_feature = "avx2"),
     not(target_feature = "avx512f")
 ))]
