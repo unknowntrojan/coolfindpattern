@@ -2,7 +2,7 @@
 
 use std::{
     ops::BitAnd,
-    simd::{Mask, Simd, SimdPartialEq, ToBitMask},
+    simd::{cmp::SimdPartialEq, Mask, Simd},
 };
 
 // we attempt to detect which instruction set rustc will make use of,
