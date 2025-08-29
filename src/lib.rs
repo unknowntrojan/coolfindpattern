@@ -1,8 +1,8 @@
-#![feature(portable_simd, array_chunks)]
+#![feature(portable_simd, iter_array_chunks)]
 
 use std::{
     ops::BitAnd,
-    simd::{cmp::SimdPartialEq, Mask, Simd},
+    simd::{Mask, Simd, cmp::SimdPartialEq},
 };
 
 // we attempt to detect which instruction set rustc will make use of,
@@ -34,7 +34,7 @@ macro_rules! pattern {
     ($($elem:tt),+) => {
         &[$(pattern!(@el $elem)),+]
     };
-    (@el $v:expr) => {
+    (@el $v:literal) => {
         Some($v as u8)
     };
     (@el $v:tt) => {
@@ -103,12 +103,13 @@ impl<'a> From<Pattern<'a>> for PreparedPattern {
         mask_extended[0..pat.len()].copy_from_slice(&mask);
 
         let chunks: Vec<PatternChunk> = bytes_extended
+            .into_iter()
             .array_chunks::<BYTES>()
-            .zip(mask_extended.array_chunks::<BYTES>())
+            .zip(mask_extended.into_iter().array_chunks::<BYTES>())
             .map(|(bytes, mask)| PatternChunk {
                 first_byte: Simd::from_array([bytes[0]; BYTES]),
-                mask: Mask::from_array(*mask),
-                bytes: Simd::from_array(*bytes),
+                mask: Mask::from_array(mask),
+                bytes: Simd::from_array(bytes),
             })
             .collect();
 

@@ -2,16 +2,16 @@
 
 extern crate test;
 
-use coolfindpattern::{pattern, PatternSearcher};
+use coolfindpattern::{PatternSearcher, pattern};
 use rand::Rng;
 use test::Bencher;
 
 #[bench]
 fn bench_pattern_1gig(b: &mut Bencher) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let size: usize = 1024 * 1024 * 1024;
-    let mut test_pattern: Vec<u8> = (0..size).map(|_| rng.gen_range(0..=255)).collect();
+    let mut test_pattern: Vec<u8> = (0..size).map(|_| rng.random_range(0..=255)).collect();
 
     let pattern = size - 15;
 

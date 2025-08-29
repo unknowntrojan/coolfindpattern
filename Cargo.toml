@@ -2,10 +2,10 @@
 name = "coolfindpattern"
 description = "SIMD-accelerated pattern scanning library"
 authors = ["unknowntrojan"]
-version = "0.1.6"
+version = "0.1.7"
 license-file = "LICENSE"
 repository = "https://github.com/unknowntrojan/coolfindpattern"
-edition = "2021"
+edition = "2024"
 
 [[bench]]
 name = "find_pattern"
@@ -19,6 +19,6 @@ strip = false
 lto = "fat"
 
 [dev-dependencies]
-rand = "0.8.5"
+rand = "0.9"
 
 [dependencies]
